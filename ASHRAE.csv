@@ -1,0 +1,22 @@
+Occupancy Category,cfm/p,L/s/p,cfm/ft2,L/s/m2,Default Occupancy Density (#/1000 ft2 or 100m2)
+Art classroom,10,5,0.18,0.9,20
+Classrooms (ages 5 to 8),10,5,0.12,0.6,25
+Classrooms (age 9 plus),10,5,0.12,0.6,35
+Daycare sickroom,10,5,0.18,0.9,25
+Daycare (through age 4),10,5,0.18,0.9,25
+Lecture classroom,7.5,3.8,0.06,0.3,65
+Lecture hall (fixed seats),7.5,3.8,0.06,0.3,150
+"Bars, cocktail lounges",7.5,3.8,0.18,0.9,100
+Cafeteria/fast-food dining,7.5,3.8,0.18,0.9,100
+Kitchen (cooking),7.5,3.8,0.12,0.6,20
+Restaurant dining rooms,7.5,3.8,0.18,0.9,70
+Conference/meeting,5,2.5,0.06,0.3,50
+Bedroom/living room,5,2.5,0.06,0.3,10
+Dental operatory,10,5,0.18,0.9,20
+Supermarket,7.5,3.8,0.06,0.3,8
+"Gym, sports arena",20,10,0.18,0.9,7
+Health club/aerobics room,20,10,0.06,0.3,40
+Health club/weight rooms,20,10,0.06,0.3,10
+Beauty and nail salons,20,10,0.12,0.6,25
+Retail,7.5,3.8,0.12,0.6,15
+Places of religious worship,5,2.5,0.06,0.3,120
