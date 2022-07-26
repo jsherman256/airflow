@@ -5,4 +5,4 @@ venv:
 build: venv
 
 run: build
-	venv/bin/streamlit run main.py
+	venv/bin/streamlit run app.py
