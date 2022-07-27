@@ -22,7 +22,7 @@ co2_outdoor = 0.000420
 
 def co2_by_time(t, co2_rate, people, ach, volume, co2_init):
     q = co2_rate
-    n = ach
+    n = ach if ach > 0 else 0.1
     V = volume
 
     result = (q*people / (n * V)) * (1 - (1 / exp(n * t)))

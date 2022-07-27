@@ -30,7 +30,7 @@ room_volume = (length * width * ceiling)
 # Fresh and purified air
 columns = st.columns(3)
 with columns[0]:
-    fresh_cfm = st.number_input("Outdoor Air (CFM)", min_value=0, value=0, step=10)
+    fresh_cfm = st.number_input("Outdoor Air (CFM)", min_value=0, value=200, step=10)
 with columns[1]:
     cadr = st.number_input("Purifiers (CADR)", min_value=0, value=0, step=10)
 total_cfm = (fresh_cfm + cadr)
@@ -90,8 +90,8 @@ with columns[3]:
     st.metric("99.9% clearance", f"{clearance_time_999(total_ach)} min")
 
 # Graph
-st.markdown("#### Predicted CO2 over time")
 if fresh_cfm > 0:
+    st.markdown("#### Predicted CO2 over time")
     st.line_chart(
         co2_predictions
     )
