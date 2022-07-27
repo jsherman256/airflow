@@ -1,95 +1,97 @@
 import streamlit as st
 import pandas as pd
-from math import exp
 import numpy as np
+from lib import *
 
-def cfm_to_lps(cfm):
-    return cfm * 0.47194745
+with open('README.md', 'r') as readme:
+    st.markdown(readme.read())
 
-# cubic feet to cubic meters
-def f3_to_m3(f3):
-    return f3 * 0.0283168
+st.markdown('---')
 
-# Time to clear 99% of particles
-def clearance_time_99(ach):
-    if ach == 0:
-        return "∞"
-    return int((np.log(100) / ach) * 60)
-
-# Time to clear 99.9% of particles
-def clearance_time_999(ach):
-    if ach == 0:
-        return "∞"
-    return int((np.log(1000) / ach) * 60)
-
-co2_cubic_meter_per_hour = 0.05
-co2_outdoor = 0.000420
-
-def co2_by_time(t, co2_rate, people, ach, volume, co2_init):
-    q = co2_rate
-    n = ach
-    V = volume
-
-    result = (q*people / (n * V)) * (1 - (1 / exp(n * t)))
-    result += ((co2_init - co2_outdoor) * (1 / exp(n*t)))
-    result += co2_outdoor
-    
-    # Retun in ppm
-    return result * 1000000
-
-
-# Room size
-columns = st.columns(4)
+# Room type and occupancy
+ashrae = pd.read_csv('ASHRAE.csv', index_col=0)
+columns = st.columns([2,1])
 with columns[0]:
-    length = st.number_input("Room length (feet):", value=15)
+    room_type = st.selectbox("Type of room:", ashrae.index)
 with columns[1]:
-    width = st.number_input("Room width (feet):", value=15)
-with columns[2]:
-    ceiling = st.number_input("Ceiling height (feet):", value=8)
-with columns[3]:
-    room_volume = (length * width * ceiling)
-    st.metric("Room Volume (cubic feet)", room_volume)
-
-# Occupants
-columns = st.columns([1,2,1])
-with columns[0]:
     people = st.number_input("Number of people:", min_value=1, value=20)
 
-# Fresh and purified air
-columns = st.columns(4)
+# Room size
+columns = st.columns(3)
 with columns[0]:
-    fresh_cfm = st.number_input("Fresh Air (CFM)", min_value=0, value=0, step=10)
+    length = st.number_input("Room length (ft):", value=15)
+with columns[1]:
+    width = st.number_input("Room width (ft):", value=15)
+with columns[2]:
+    ceiling = st.number_input("Ceiling height (ft):", value=8)
+room_volume = (length * width * ceiling)
+
+
+# Fresh and purified air
+columns = st.columns(3)
+with columns[0]:
+    fresh_cfm = st.number_input("Outdoor Air (CFM)", min_value=0, value=0, step=10)
 with columns[1]:
     cadr = st.number_input("Purifiers (CADR)", min_value=0, value=0, step=10)
-with columns[3]:
-    total_cfm = (fresh_cfm + cadr)
-    st.metric("Total CFM", total_cfm)
+total_cfm = (fresh_cfm + cadr)
 
 # Flow and air changes
-ach = 60 * (total_cfm / room_volume)
-liters_per_second = cfm_to_lps(total_cfm) 
-lps_per_person = liters_per_second / people
+total_ach = 60 * (total_cfm / room_volume)
+fresh_ach = 60 * (fresh_cfm / room_volume)
+fresh_cfm_per_person = fresh_cfm / people
 
 # Results
 st.markdown("---")
+
+ashrae_values = ashrae.loc[room_type]
+ashrae_cfm = (ashrae_values['cfm/p'] * people) + (ashrae_values['cfm/ft2'] * length * width)
+
+co2_predictions = (
+    pd
+    .DataFrame
+    .from_dict(
+        {t: co2_by_time(t, co2_cubic_meter_per_hour, people, fresh_ach, f3_to_m3(room_volume), co2_outdoor) for t in np.arange(0, 2, 0.05)},
+        orient='index',
+        columns=['CO2']
+    )
+)
+
+# Calculate possible errors and warnings
+
+warnings = []
+errors = []
+
+if fresh_cfm < ashrae_cfm:
+    errors.append(f"ASHRAE recommends a bare minimum of **{round(ashrae_cfm)} CFM of outdoor air** for this room. Consider more ventilation or fewer occupants.")
+
+if total_ach < 3:
+    errors.append("Fewer than **3 air changes per hour** increases the risk of COVID spread")
+elif total_ach < 6:
+    warnings.append("You can reduce COVID transmission risk by bringing in **6+ ACH** of outdoor air")
+
+if co2_predictions.CO2.max() > 1000:
+    errors.append("The CO2 levels in this room are above recommended limits. Bring in more outdoor air. Aim for **< 800 ppm**")
+elif co2_predictions.CO2.max() > 800:
+    warnings.append("The CO2 levels in this room are a bit high. Bring in more outdoor air. Aim for **< 800 ppm**")
+
+for e in errors:
+    st.error(e)
+for w in warnings:
+    st.warning(w)
+
 columns = st.columns(4)
 with columns[0]:
-    st.metric("Air Changes per Hour", round(ach, 1))
+    st.metric("Total ACH", round(total_ach))
 with columns[1]:
-    st.metric("L/s per person", round(lps_per_person, 1))
+    st.metric("Outdoor ACH", round(fresh_ach))
 with columns[2]:
-    st.metric("99% clearance", f"{clearance_time_99(ach)} min")
+    st.metric("Outdoor CFM/person", round(fresh_cfm_per_person))
 with columns[3]:
-    st.metric("99.9% clearance", f"{clearance_time_999(ach)} min")
+    st.metric("99.9% clearance", f"{clearance_time_999(total_ach)} min")
 
 # Graph
+st.markdown("#### Predicted CO2 over time")
 if fresh_cfm > 0:
     st.line_chart(
-        pd
-        .DataFrame
-        .from_dict(
-            {t: co2_by_time(t, co2_cubic_meter_per_hour, people, 60 * (fresh_cfm / room_volume), f3_to_m3(room_volume), co2_outdoor) for t in np.arange(0, 2, 0.05)},
-            orient='index',
-            columns=['CO2']
-        )
+        co2_predictions
     )
